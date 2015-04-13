@@ -20,14 +20,22 @@ Server* Server_Open(Domain domain, int port, bool reuse_address)
     Socket sock = socket(domain, SOCK_STREAM, 0);
 
     if (sock == -1) {
-        error("Failed to open server socket");
+        error("Failed to open server socket", 1);
     }
 
     new_server->socket = sock;
     new_server->domain = domain;
 
-    // Set up address
 
+    // NOTE: Whether the address is reusable or not should be specified in
+    //       configuration.
+
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse_address, sizeof(int))
+        == -1) {
+        error("Failed to set socket option SO_REUSEADDR on socket", 1);
+    }
+
+    // Set up address
     int result;
 
     if (new_server->domain == PF_INET) { // IPv4
@@ -53,16 +61,10 @@ Server* Server_Open(Domain domain, int port, bool reuse_address)
     }
 
     if (result == -1) {
-        error("Failed to bind server socket to requested address");
+        error("Failed to bind server socket to requested address", 1);
     }
 
     fcntl(new_server->socket, F_SETFL, O_NONBLOCK);
-
-    int option = (reuse_address == true);
-    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(int))
-        == -1) {
-        error("Failed to set socket option SO_REUSEADDR on socket");
-    }
 
     // NOTE: Backlog should be specified in configuration.
 
@@ -79,13 +81,13 @@ void Server_Close(Server* server)
 
 bool Server_Exec(Server* server)
 {
-    Address newaddress;
+    IPAddress newaddress;
     socklen_t newaddress_length;
     Socket newsocket = accept(server->socket, &newaddress, &newaddress_length);
 
     if (newsocket == -1) { // An error occured! Most likely EWOULDBLOCK.
         if (errno != EWOULDBLOCK) { // However if not, report the error.
-            error("Failed to accept incoming connection");
+            error("Failed to accept incoming connection", 0);
         }
     } else {
         Server_HandleConnection(server, newsocket, newaddress,
@@ -94,13 +96,13 @@ bool Server_Exec(Server* server)
     return true;
 }
 
-void Server_HandleConnection(Server* server, Socket socket, Address addr,
+void Server_HandleConnection(Server* server, Socket socket, IPAddress addr,
                              socklen_t length)
 {
     printf("Client connected! ");
-    if (addr.sa_family == AF_INET) {
+    if (addr.ss_family == AF_INET) {
         printf("(IPv4)");
-    } else if (addr.sa_family == AF_INET6) {
+    } else if (addr.ss_family == AF_INET6) {
         printf("(IPv6)");
     } else {
         printf("(Unknown address family!)");
@@ -109,7 +111,7 @@ void Server_HandleConnection(Server* server, Socket socket, Address addr,
     // This is a test message for now.
     char* message = "Hello! Welcome to DasForum.\n";
     if (send(socket, message, strlen(message), 0) == -1) {
-        error("Failed to send message to client");
+        error("Failed to send message to client", 0);
     }
     close(socket);
 }

@@ -6,6 +6,7 @@
 /* Types for code readability */
 typedef int Socket;
 typedef struct sockaddr Address;
+typedef struct sockaddr_storage IPAddress;
 typedef struct sockaddr_in IP4Address;
 typedef struct sockaddr_in6 IP6Address;
 typedef int Domain;

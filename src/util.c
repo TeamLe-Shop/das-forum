@@ -5,8 +5,10 @@
 #include <string.h>
 #include <stdlib.h>
 
-void error(char* message)
+void error(char* message, int error)
 {
     fprintf(stderr, "%s: %s\n", message, strerror(errno));
-    exit(1);
+    if (error) {
+        exit(1);
+    }
 }
