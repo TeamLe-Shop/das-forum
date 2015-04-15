@@ -82,7 +82,8 @@ void Server_Close(Server* server)
 bool Server_Exec(Server* server)
 {
     IPAddress newaddress;
-    socklen_t newaddress_length;
+    socklen_t newaddress_length = sizeof(IPAddress);
+    memset(&newaddress, 0, sizeof(IPAddress));
     Socket newsocket = accept(server->socket, &newaddress, &newaddress_length);
 
     if (newsocket == -1) { // An error occured! Most likely EWOULDBLOCK.
@@ -96,22 +97,20 @@ bool Server_Exec(Server* server)
     return true;
 }
 
-void Server_HandleConnection(Server* server, Socket socket, IPAddress addr,
+void Server_HandleConnection(Server* server, Socket socket, IPAddress address,
                              socklen_t length)
 {
-    printf("Client connected! ");
-    if (addr.ss_family == AF_INET) {
-        printf("(IPv4)");
-    } else if (addr.ss_family == AF_INET6) {
-        printf("(IPv6)");
-    } else {
-        printf("(Unknown address family!)");
-    }
-    printf("\n");
+    char addr[IP_MAXSTRLEN];
+    address_to_string(address, addr, false);
+    printf("Client connected [%s]\n", addr);
+
     // This is a test message for now.
-    char* message = "Hello! Welcome to DasForum.\n";
-    if (send(socket, message, strlen(message), 0) == -1) {
+    char* message = "Hello! Welcome to DasForum.";
+    FILE* client = fdopen(socket, "w");
+    if (fprintf(client, "MOTD: %s\n", message) == -1) {
         error("Failed to send message to client", 0);
     }
+    fclose(client);
+
     close(socket);
 }

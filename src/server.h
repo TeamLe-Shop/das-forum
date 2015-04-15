@@ -40,7 +40,7 @@ bool Server_Exec(Server* server);
  * Adds a new client to the client list using the connection information passed
  * in.
  */
-void Server_HandleConnection(Server* server, Socket socket, IPAddress addr,
+void Server_HandleConnection(Server* server, Socket socket, IPAddress address,
                              socklen_t length);
 
 #endif /* SERVER_H */
