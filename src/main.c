@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
     bool reuse_address = true;
 
     Server* server = Server_Open(domain, port, reuse_address);
-    while (Server_Exec(server)) {}
+    while (Server_Cycle(server)) {}
     Server_Close(server);
     return 0;
 }

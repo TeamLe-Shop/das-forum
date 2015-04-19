@@ -79,7 +79,7 @@ void Server_Close(Server* server)
     free(server);
 }
 
-bool Server_Exec(Server* server)
+bool Server_Cycle(Server* server)
 {
     IPAddress newaddress;
     socklen_t newaddress_length = sizeof(IPAddress);

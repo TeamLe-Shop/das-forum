@@ -34,7 +34,7 @@ void Server_Close(Server* server);
  * This accepts incoming connections and receives data from connected clients.
  * Returns whether the server has shut down or not.
  */
-bool Server_Exec(Server* server);
+bool Server_Cycle(Server* server);
 
 /*
  * Adds a new client to the client list using the connection information passed
