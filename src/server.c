@@ -14,7 +14,8 @@
 #include "types.h"
 #include "util.h"
 
-Server* Server_Open(Domain domain, int port, bool reuse_address)
+Server* Server_Open(Domain domain, int port, bool reuse_address,
+                    size_t max_clients)
 {
     Server* new_server = malloc(sizeof(Server));
     Socket sock = socket(domain, SOCK_STREAM, 0);
@@ -70,6 +71,8 @@ Server* Server_Open(Domain domain, int port, bool reuse_address)
 
     listen(new_server->socket, SOMAXCONN);
 
+    new_server->clients = ClientList_New(max_clients);
+
     return new_server;
 }
 
@@ -94,6 +97,7 @@ bool Server_Cycle(Server* server)
         Server_HandleConnection(server, newsocket, newaddress,
                                 newaddress_length);
     }
+
     return true;
 }
 
@@ -104,13 +108,13 @@ void Server_HandleConnection(Server* server, Socket socket, IPAddress address,
     address_to_string(address, addr, false);
     printf("Client connected [%s]\n", addr);
 
+    Client c = {address, socket, fdopen(socket, "w")};
+    ClientList_Add(server->clients, c);
+
     // This is a test message for now.
     char* message = "Hello! Welcome to DasForum.";
-    FILE* client = fdopen(socket, "w");
-    if (fprintf(client, "MOTD: %s\n", message) == -1) {
-        error("Failed to send message to client", 0);
-    }
-    fclose(client);
 
-    close(socket);
+    Client_Send(c, "The message of the day is... \"%s\"\n", message);
+    Client_Send(c, "Users online: %d\n", server->clients->size);
+    ClientList_Disconnect(server->clients, c);
 }

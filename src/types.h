@@ -2,6 +2,7 @@
 #define TYPES_H
 
 #include <sys/types.h>
+#include <sys/socket.h>
 
 /* Types for code readability */
 typedef int Socket;

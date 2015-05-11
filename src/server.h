@@ -6,10 +6,12 @@
 #include <stdbool.h>
 
 #include "types.h"
+#include "client.h"
 
 struct Server {
     Socket socket;
     Domain domain;
+    ClientList* clients;
 };
 
 typedef struct Server Server;
@@ -21,7 +23,8 @@ typedef struct Server Server;
  * The file descriptor this is performed on will be
  * owned by the Server object.
  */
-Server* Server_Open(Domain domain, int port, bool reuse_address);
+Server* Server_Open(Domain domain, int port, bool reuse_address,
+                    size_t max_clients);
 
 /*
  * Closes the socket file descriptor owned by the `server`
