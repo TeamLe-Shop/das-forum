@@ -36,7 +36,7 @@ bool ClientList_Add(ClientList* list, Client client)
         return false;
     }
 
-    list->clients = realloc(list->clients, list->size + 1);
+    list->clients = realloc(list->clients, sizeof(Client) * (list->size + 1));
     list->clients[list->size] = client;
     list->size++;
 
@@ -51,11 +51,16 @@ void ClientList_Disconnect(ClientList* list, Client client)
 
     ssize_t index;
     if ((index = ClientList_GetIndex(list, client)) != -1) {
-        memmove(&client, &list->clients[index + 1], list->size - index);
         list->size--;
-        list->clients = realloc(list->clients, list->size);
+        memmove(&client, &list->clients[index + 1], sizeof(Client) * (list->size - index));
+        if (list->size > 0) {
+            list->clients = realloc(list->clients, sizeof(Client) * list->size);
+        } else {
+            free(list->clients);
+            list->clients = NULL;
+        }
     } else {
-        fprintf(stderr, "Failed to disconnect client?\n");
+        fprintf(stderr, "Failed to disconnect client\n");
     }
 
     fclose(client.file);
