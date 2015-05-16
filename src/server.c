@@ -79,6 +79,7 @@ Server* Server_Open(Domain domain, int port, bool reuse_address,
 void Server_Close(Server* server)
 {
     close(server->socket);
+    free(server->clients);
     free(server);
 }
 
@@ -117,4 +118,18 @@ void Server_HandleConnection(Server* server, Socket socket, IPAddress address,
     Client_Send(c, "The message of the day is... \"%s\"\n", message);
     Client_Send(c, "Users online: %d\n", server->clients->size);
     ClientList_Disconnect(server->clients, c);
+}
+
+size_t Server_MemoryUsage(Server* server)
+{
+    size_t total = 0;
+    total += sizeof(Server);
+    // Memory used by server->list structure...
+    total += sizeof(ClientList);
+    total += sizeof(Client) * server->clients->size;
+
+    // Individual client memory usage
+    total += sizeof(FILE); // Client's file descriptor
+
+    return total;
 }

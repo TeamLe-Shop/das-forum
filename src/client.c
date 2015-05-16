@@ -52,7 +52,8 @@ void ClientList_Disconnect(ClientList* list, Client client)
     ssize_t index;
     if ((index = ClientList_GetIndex(list, client)) != -1) {
         list->size--;
-        memmove(&client, &list->clients[index + 1], sizeof(Client) * (list->size - index));
+        memmove(&client, &list->clients[index + 1],
+                sizeof(Client) * (list->size - index));
         if (list->size > 0) {
             list->clients = realloc(list->clients, sizeof(Client) * list->size);
         } else {

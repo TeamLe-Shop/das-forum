@@ -46,4 +46,10 @@ bool Server_Cycle(Server* server);
 void Server_HandleConnection(Server* server, Socket socket, IPAddress address,
                              socklen_t length);
 
+
+/*
+ * Counts the total amount of memory currently used.
+ */
+size_t Server_MemoryUsage(Server* server);
+
 #endif /* SERVER_H */
