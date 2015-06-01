@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include <curses.h>
 
 #include "types.h"
 
@@ -12,6 +13,7 @@ struct Client {
     Socket socket;
     FILE* file; // We're using a FILE* here so we can just send ncurses
                 // window data down the socket with ease.
+    SCREEN* screen;
 };
 
 typedef struct Client Client;

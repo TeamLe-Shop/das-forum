@@ -8,6 +8,8 @@
 #define PORT_LENGTH 5
 #define IP_MAXSTRLEN INET6_ADDRSTRLEN + 1 + PORT_LENGTH + 1
 
+#define bp() printf("Breakpoint #%d\n", x); x++
+
 /*
  * Prints `message` along with an error message for the global variable
  * errno using strerror. If `exit_code` is non-0, it will exit with exit code

@@ -6,6 +6,8 @@
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
+#include <curses.h>
+#include <stdarg.h>
 
 #include <arpa/inet.h>
 
@@ -99,6 +101,32 @@ bool Server_Cycle(Server* server)
                                 newaddress_length);
     }
 
+    size_t i;
+    const size_t buffer_length = 256;
+    char buffer[buffer_length];
+    memset(buffer, 0, buffer_length);
+
+    char address[IP_MAXSTRLEN];
+
+    for (i = 0; i < server->clients->size; i++) {
+        int bytes = recv(server->clients->clients[i].socket, buffer,
+                            buffer_length - 1, 0);
+        if (bytes == 0) {
+            delscreen(server->clients->clients[i].screen);
+            ClientList_Disconnect(server->clients, server->clients->clients[i]);
+            continue;
+        } else if (bytes == -1) {
+            if (errno != EAGAIN) {
+                error("Failed to receive message from client", 0);
+            }
+        } else {
+            address_to_string(server->clients->clients[i].address, address,
+                              true);
+            printf("Received message from [%s]: %s", address, buffer);
+            Server_Broadcast(server, "[%s]: %s", address, buffer);
+        }
+    }
+
     return true;
 }
 
@@ -109,7 +137,10 @@ void Server_HandleConnection(Server* server, Socket socket, IPAddress address,
     address_to_string(address, addr, false);
     printf("Client connected [%s]\n", addr);
 
-    Client c = {address, socket, fdopen(socket, "w")};
+    Client c = {address, socket, fdopen(socket, "r+"), NULL};
+    SCREEN* scr = newterm(getenv("TERM"), c.file, c.file);
+    c.screen = scr;
+
     ClientList_Add(server->clients, c);
 
     // This is a test message for now.
@@ -117,7 +148,6 @@ void Server_HandleConnection(Server* server, Socket socket, IPAddress address,
 
     Client_Send(c, "The message of the day is... \"%s\"\n", message);
     Client_Send(c, "Users online: %d\n", server->clients->size);
-    ClientList_Disconnect(server->clients, c);
 }
 
 size_t Server_MemoryUsage(Server* server)
@@ -132,4 +162,22 @@ size_t Server_MemoryUsage(Server* server)
     total += sizeof(FILE); // Client's file descriptor
 
     return total;
+}
+
+void Server_Broadcast(Server* server, char* format, ...)
+{
+    va_list argument_list;
+    va_start(argument_list, format);
+
+    size_t i;
+
+    for (i = 0; i < server->clients->size; i++) {
+        Client client = server->clients->clients[i];
+        if (vfprintf(client.file, format, argument_list) == -1) {
+            error("Failed to send message to client", 0);
+        }
+        fflush(client.file);
+    }
+
+    va_end(argument_list);
 }

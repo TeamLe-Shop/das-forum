@@ -8,7 +8,7 @@ EXECUTABLE=dasforum
 all: $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+	$(CC) $(LDFLAGS) $(OBJECTS) -lncurses -o $@
 
 .c.o:
 	$(CC) $(CFLAGS) $< -o $@

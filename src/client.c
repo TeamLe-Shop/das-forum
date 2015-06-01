@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <curses.h>
 
 #include <arpa/inet.h>
 
@@ -49,6 +50,10 @@ void ClientList_Disconnect(ClientList* list, Client client)
     address_to_string(client.address, addr, false);
     printf("Client disconnected [%s]\n", addr);
 
+    delscreen(client.screen);
+    fclose(client.file);
+    close(client.socket);
+
     ssize_t index;
     if ((index = ClientList_GetIndex(list, client)) != -1) {
         list->size--;
@@ -64,8 +69,6 @@ void ClientList_Disconnect(ClientList* list, Client client)
         fprintf(stderr, "Failed to disconnect client\n");
     }
 
-    fclose(client.file);
-    close(client.socket);
 }
 
 ssize_t ClientList_GetIndex(ClientList* list, Client client)
@@ -87,7 +90,6 @@ void Client_Send(Client client, char* format, ...)
 {
     va_list argument_list;
     va_start(argument_list, format);
-
 
     if (vfprintf(client.file, format, argument_list) == -1) {
         error("Failed to send message to client", 0);
