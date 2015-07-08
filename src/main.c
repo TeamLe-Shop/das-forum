@@ -17,7 +17,6 @@ Server* server;
 void signal_handler(int signal)
 {
     if (server != NULL) {
-        printf("\nServer memory usage: %zu\n", Server_MemoryUsage(server));
         Server_Close(server);
         exit(0);
     }

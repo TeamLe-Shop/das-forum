@@ -8,6 +8,8 @@
 
 #include "types.h"
 
+#include "../lib/types/list.h"
+
 struct Client {
     IPAddress address;
     Socket socket;
@@ -19,8 +21,7 @@ struct Client {
 typedef struct Client Client;
 
 struct ClientList {
-    Client* clients;
-    size_t size;
+    ListStruct(Client)* clients;
     size_t max_clients;
 };
 
@@ -61,5 +62,10 @@ ssize_t ClientList_GetIndex(ClientList* list, Client client);
  * Sends a formatted message to `client` and flushes the stream.
  */
 void Client_Send(Client client, char* format, ...);
+
+/*
+ * Sends a formatted message to `client` and flushes the stream.
+ */
+void Client_Send_VA(Client client, char* format, va_list argument_list);
 
 #endif /* CLIENT_H */

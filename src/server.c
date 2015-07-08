@@ -108,20 +108,21 @@ bool Server_Cycle(Server* server)
 
     char address[IP_MAXSTRLEN];
 
-    for (i = 0; i < server->clients->size; i++) {
-        int bytes = recv(server->clients->clients[i].socket, buffer,
-                            buffer_length - 1, 0);
+    for (i = 0; i < server->clients->clients->size; i++) {
+        int bytes = recv(server->clients->clients->list[i].socket, buffer,
+                         buffer_length - 1, 0);
         if (bytes == 0) {
-            delscreen(server->clients->clients[i].screen);
-            ClientList_Disconnect(server->clients, server->clients->clients[i]);
+            delscreen(server->clients->clients->list[i].screen);
+            ClientList_Disconnect(server->clients,
+                                  server->clients->clients->list[i]);
             continue;
         } else if (bytes == -1) {
             if (errno != EAGAIN) {
                 error("Failed to receive message from client", 0);
             }
         } else {
-            address_to_string(server->clients->clients[i].address, address,
-                              true);
+            address_to_string(server->clients->clients->list[i].address,
+                              address, false);
             printf("Received message from [%s]: %s", address, buffer);
             Server_Broadcast(server, "[%s]: %s", address, buffer);
         }
@@ -138,8 +139,6 @@ void Server_HandleConnection(Server* server, Socket socket, IPAddress address,
     printf("Client connected [%s]\n", addr);
 
     Client c = {address, socket, fdopen(socket, "r+"), NULL};
-    SCREEN* scr = newterm(getenv("TERM"), c.file, c.file);
-    c.screen = scr;
 
     ClientList_Add(server->clients, c);
 
@@ -147,21 +146,7 @@ void Server_HandleConnection(Server* server, Socket socket, IPAddress address,
     char* message = "Hello! Welcome to DasForum.";
 
     Client_Send(c, "The message of the day is... \"%s\"\n", message);
-    Client_Send(c, "Users online: %d\n", server->clients->size);
-}
-
-size_t Server_MemoryUsage(Server* server)
-{
-    size_t total = 0;
-    total += sizeof(Server);
-    // Memory used by server->list structure...
-    total += sizeof(ClientList);
-    total += sizeof(Client) * server->clients->size;
-
-    // Individual client memory usage
-    total += sizeof(FILE); // Client's file descriptor
-
-    return total;
+    Client_Send(c, "Users online: %d\n", server->clients->clients->size);
 }
 
 void Server_Broadcast(Server* server, char* format, ...)
@@ -171,12 +156,9 @@ void Server_Broadcast(Server* server, char* format, ...)
 
     size_t i;
 
-    for (i = 0; i < server->clients->size; i++) {
-        Client client = server->clients->clients[i];
-        if (vfprintf(client.file, format, argument_list) == -1) {
-            error("Failed to send message to client", 0);
-        }
-        fflush(client.file);
+    for (i = 0; i < server->clients->clients->size; i++) {
+        Client client = server->clients->clients->list[i];
+        Client_Send_VA(client, format, argument_list);
     }
 
     va_end(argument_list);

@@ -48,11 +48,6 @@ void Server_HandleConnection(Server* server, Socket socket, IPAddress address,
                              socklen_t length);
 
 /*
- * Counts the total amount of memory currently used.
- */
-size_t Server_MemoryUsage(Server* server);
-
-/*
  * Broadcast a formatted message to all connected clients.
  */
 void Server_Broadcast(Server* server, char* format, ...);

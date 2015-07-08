@@ -13,8 +13,7 @@
 ClientList* ClientList_New(size_t max_clients)
 {
     ClientList* list = malloc(sizeof(ClientList));
-    list->clients = NULL;
-    list->size = 0;
+    list->clients = ListInit(list->clients, NULL, NULL);
     list->max_clients = max_clients;
 
     return list;
@@ -24,22 +23,20 @@ void ClientList_Destroy(ClientList* list)
 {
     size_t i;
     // Close all open sockets
-    for (i = 0; i < list->size; i++) {
-        ClientList_Disconnect(list, list->clients[i]);
+    for (i = 0; i < list->clients->size; i++) {
+        ClientList_Disconnect(list, list->clients->list[i]);
     }
-    free(list->clients);
+    List_Destroy(list->clients);
     free(list);
 }
 
 bool ClientList_Add(ClientList* list, Client client)
 {
-    if (list->size >= list->max_clients) {
+    if (list->clients->size >= list->max_clients) {
         return false;
     }
 
-    list->clients = realloc(list->clients, sizeof(Client) * (list->size + 1));
-    list->clients[list->size] = client;
-    list->size++;
+    List_Append(list->clients, client);
 
     return true;
 }
@@ -56,15 +53,7 @@ void ClientList_Disconnect(ClientList* list, Client client)
 
     ssize_t index;
     if ((index = ClientList_GetIndex(list, client)) != -1) {
-        list->size--;
-        memmove(&client, &list->clients[index + 1],
-                sizeof(Client) * (list->size - index));
-        if (list->size > 0) {
-            list->clients = realloc(list->clients, sizeof(Client) * list->size);
-        } else {
-            free(list->clients);
-            list->clients = NULL;
-        }
+        List_Erase(list->clients,  ClientList_GetIndex(list, client));
     } else {
         fprintf(stderr, "Failed to disconnect client\n");
     }
@@ -74,11 +63,11 @@ void ClientList_Disconnect(ClientList* list, Client client)
 ssize_t ClientList_GetIndex(ClientList* list, Client client)
 {
     size_t i;
-    for (i = 0; i < list->size; i++) {
+    for (i = 0; i < list->clients->size; i++) {
         // Here we just search by socket; we could probably use other
         // unique variables. Memory addresses wouldn't work as conveniently.
         // See server.c: `Server_HandleConnection`
-        if (list->clients[i].socket == client.socket) {
+        if (list->clients->list[i].socket == client.socket) {
             return i;
         }
     }
@@ -97,4 +86,15 @@ void Client_Send(Client client, char* format, ...)
     fflush(client.file);
 
     va_end(argument_list);
+}
+
+void Client_Send_VA(Client client, char* format, va_list argument_list)
+{
+    va_list arglist;
+    va_copy(arglist, argument_list);
+    if (vfprintf(client.file, format, arglist) == -1) {
+        error("Failed to send message to client", 0);
+    }
+    fflush(client.file);
+    va_end(arglist);
 }
