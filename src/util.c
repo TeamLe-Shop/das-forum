@@ -9,9 +9,19 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-void error(char* message, int error)
+void error(char* message, int error, ...)
 {
-    fprintf(stderr, "%s: %s\n", message, strerror(errno));
+    va_list argument_list;
+    va_start(argument_list, error);
+
+    char string[1024];
+
+    snprintf(string, 1024, "%s: %s\n", message, strerror(errno));
+
+    vfprintf(stderr, string, argument_list);
+
+    va_end(argument_list);
+
     if (error) {
         exit(error);
     }

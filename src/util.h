@@ -4,11 +4,10 @@
 #include "types.h"
 
 #include <stdbool.h>
+#include <stdarg.h>
 
 #define PORT_LENGTH 5
 #define IP_MAXSTRLEN INET6_ADDRSTRLEN + 1 + PORT_LENGTH + 1
-
-#define bp() printf("Breakpoint #%d\n", x); x++
 
 /*
  * Prints `message` along with an error message for the global variable
@@ -17,7 +16,7 @@
  *
  * Format: "`message`: strerror(errno)"
  */
-void error(char* message, int exit_code);
+void error(char* message, int exit_code, ...);
 
 /*
  * Store the human-readable format of `addr` in `string`.

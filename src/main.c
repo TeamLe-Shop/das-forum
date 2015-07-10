@@ -2,14 +2,13 @@
 #include <stdbool.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <sys/socket.h>
 
 #include "util.h"
 #include "types.h"
 #include "server.h"
-
-#define DEFAULT_PORT 7778
 
 // We're using a global here to simplify the signal handler.
 Server* server;
@@ -24,12 +23,17 @@ void signal_handler(int signal)
 
 int main(int argc, char* argv[])
 {
-    // These variables should be loaded from configuration.
-    int port = DEFAULT_PORT;
-    Domain domain = PF_INET6;
-    bool reuse_address = true;
+    char* config = "config.json";
 
-    server = Server_Open(domain, port, reuse_address, 8);
+    for (size_t i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-config") == 0) {
+            config = argv[i + 1];
+            i++;
+        }
+    }
+
+
+    server = Server_Open(config);
 
     // Set our handlers for various termination signals.
     signal(SIGINT, signal_handler);

@@ -13,23 +13,20 @@ struct Server {
     Socket socket;
     Domain domain;
     ClientList* clients;
+    char* motd;
 };
 
 typedef struct Server Server;
 
 /*
- * Creates a new Server object, and opens a new socket
- * with domain `domain`, and on port `port`.
- * It will reuse the address if `reuse_address` is set to true.
- * The file descriptor this is performed on will be
- * owned by the Server object.
+ * Creates a new Server object, and uses configuration variables from the file
+ * `config_file`.
  */
-Server* Server_Open(Domain domain, int port, bool reuse_address,
-                    size_t max_clients);
+Server* Server_Open(char* config_file);
 
 /*
- * Closes the socket file descriptor owned by the `server`
- * object, and frees any memory used by it.
+ * Closes the socket file descriptor owned by the `server`  object, and frees
+ * any memory used by it.
  */
 void Server_Close(Server* server);
 

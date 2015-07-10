@@ -15,11 +15,33 @@
 
 #include "types.h"
 #include "util.h"
+#include "config.h"
 
-Server* Server_Open(Domain domain, int port, bool reuse_address,
-                    size_t max_clients)
+Server* Server_Open(char* configfile)
 {
     Server* new_server = malloc(sizeof(Server));
+
+    // Configuration variables
+    int port;
+    Domain domain = PF_INET6;
+    bool reuse_address;
+    size_t max_clients;
+    int backlog;
+
+    new_server->motd = "Hello! Welcome to DasForum.";
+
+    Config* config = Config_New(configfile);
+
+    if (config) {
+        port = Config_GetInteger(config, "port", 7778);
+        reuse_address = Config_GetInteger(config, "reuse_address", true);
+        max_clients = Config_GetInteger(config, "max_clients", 10);
+        backlog = Config_GetInteger(config, "backlog", SOMAXCONN);
+        new_server->motd = Config_GetString(config, "motd", "Welcome!");
+    }
+
+    Config_Destroy(config);
+
     Socket sock = socket(domain, SOCK_STREAM, 0);
 
     if (sock == -1) {
@@ -28,10 +50,6 @@ Server* Server_Open(Domain domain, int port, bool reuse_address,
 
     new_server->socket = sock;
     new_server->domain = domain;
-
-
-    // NOTE: Whether the address is reusable or not should be specified in
-    //       configuration.
 
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse_address, sizeof(int))
         == -1) {
@@ -69,9 +87,7 @@ Server* Server_Open(Domain domain, int port, bool reuse_address,
 
     fcntl(new_server->socket, F_SETFL, O_NONBLOCK);
 
-    // NOTE: Backlog should be specified in configuration.
-
-    listen(new_server->socket, SOMAXCONN);
+    listen(new_server->socket, backlog);
 
     new_server->clients = ClientList_New(max_clients);
 
@@ -142,10 +158,7 @@ void Server_HandleConnection(Server* server, Socket socket, IPAddress address,
 
     ClientList_Add(server->clients, c);
 
-    // This is a test message for now.
-    char* message = "Hello! Welcome to DasForum.";
-
-    Client_Send(c, "The message of the day is... \"%s\"\n", message);
+    Client_Send(c, "The message of the day is... \"%s\"\n", server->motd);
     Client_Send(c, "Users online: %d\n", server->clients->clients->size);
 }
 
