@@ -8,11 +8,13 @@
 
 #include "types.h"
 #include "client.h"
+#include "config.h"
 
 struct Server {
     Socket socket;
     Domain domain;
     ClientList* clients;
+    Config* config;
     char* motd;
 };
 
@@ -43,6 +45,9 @@ bool Server_Cycle(Server* server);
  */
 void Server_HandleConnection(Server* server, Socket socket, IPAddress address,
                              socklen_t length);
+
+void Server_HandleReceivedMessage(Server* server, char* buffer,
+                                  size_t buffer_length, Client* client);
 
 /*
  * Broadcast a formatted message to all connected clients.

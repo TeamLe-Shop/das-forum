@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <curses.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 #include <arpa/inet.h>
 
@@ -15,7 +16,6 @@
 
 #include "types.h"
 #include "util.h"
-#include "config.h"
 
 Server* Server_Open(char* configfile)
 {
@@ -28,19 +28,17 @@ Server* Server_Open(char* configfile)
     size_t max_clients;
     int backlog;
 
-    new_server->motd = "Hello! Welcome to DasForum.";
+    new_server->config = Config_New(configfile);
 
-    Config* config = Config_New(configfile);
-
-    if (config) {
-        port = Config_GetInteger(config, "port", 7778);
-        reuse_address = Config_GetInteger(config, "reuse_address", true);
-        max_clients = Config_GetInteger(config, "max_clients", 10);
-        backlog = Config_GetInteger(config, "backlog", SOMAXCONN);
-        new_server->motd = Config_GetString(config, "motd", "Welcome!");
+    if (new_server->config) {
+        port = Config_GetInteger(new_server->config, "port", 7778);
+        reuse_address = Config_GetInteger(new_server->config, "reuse_address",
+                                          true);
+        max_clients = Config_GetInteger(new_server->config, "max_clients", 10);
+        backlog = Config_GetInteger(new_server->config, "backlog", SOMAXCONN);
+        new_server->motd = Config_GetString(new_server->config, "motd",
+                                            "Welcome!");
     }
-
-    Config_Destroy(config);
 
     Socket sock = socket(domain, SOCK_STREAM, 0);
 
@@ -96,6 +94,9 @@ Server* Server_Open(char* configfile)
 
 void Server_Close(Server* server)
 {
+    if (server->config) {
+        Config_Destroy(server->config);
+    }
     close(server->socket);
     free(server->clients);
     free(server);
@@ -125,26 +126,45 @@ bool Server_Cycle(Server* server)
     char address[IP_MAXSTRLEN];
 
     for (i = 0; i < server->clients->clients->size; i++) {
-        int bytes = recv(server->clients->clients->list[i].socket, buffer,
-                         buffer_length - 1, 0);
+        Client* current_client = &server->clients->clients->list[i];
+        int bytes = recv(current_client->socket, buffer, buffer_length - 1, 0);
         if (bytes == 0) {
-            delscreen(server->clients->clients->list[i].screen);
-            ClientList_Disconnect(server->clients,
-                                  server->clients->clients->list[i]);
+            delscreen(current_client->screen);
+            ClientList_Disconnect(server->clients, *current_client);
             continue;
         } else if (bytes == -1) {
             if (errno != EAGAIN) {
                 error("Failed to receive message from client", 0);
             }
         } else {
-            address_to_string(server->clients->clients->list[i].address,
-                              address, false);
-            printf("Received message from [%s]: %s", address, buffer);
-            Server_Broadcast(server, "[%s]: %s", address, buffer);
+            Server_HandleReceivedMessage(server, buffer, buffer_length,
+                                         current_client);
+
         }
     }
 
     return true;
+}
+
+void Server_HandleReceivedMessage(Server* server, char* buffer,
+                                  size_t buffer_length, Client* client)
+{
+    char address[IP_MAXSTRLEN];
+
+    if (!client->terminal_given) {
+        client->screen = newterm(buffer, client->file, client->file);
+        //set_term(client->screen);
+        //clear();
+        //refresh();
+        //fflush(client->file);
+        Client_Send(*client, "Thank you!\n");
+        client->terminal_given = true;
+        return;
+    }
+
+    address_to_string(client->address, address, false);
+    printf("Received message from [%s]: %s", address, buffer);
+    Server_Broadcast(server, "[%s]: %s", address, buffer);
 }
 
 void Server_HandleConnection(Server* server, Socket socket, IPAddress address,
@@ -154,12 +174,11 @@ void Server_HandleConnection(Server* server, Socket socket, IPAddress address,
     address_to_string(address, addr, false);
     printf("Client connected [%s]\n", addr);
 
-    Client c = {address, socket, fdopen(socket, "r+"), NULL};
+    Client c = Client_New(socket, address);
 
     ClientList_Add(server->clients, c);
 
-    Client_Send(c, "The message of the day is... \"%s\"\n", server->motd);
-    Client_Send(c, "Users online: %d\n", server->clients->clients->size);
+    Client_Send(c, "Enter your terminal type (e.g. xterm-256color): ");
 }
 
 void Server_Broadcast(Server* server, char* format, ...)

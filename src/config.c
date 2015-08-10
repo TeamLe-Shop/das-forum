@@ -22,8 +22,8 @@ Config* Config_New(char* filename)
         config->root = json_loads(data, 0, &json_error);
 
         if (config->root == NULL) {
-            fprintf(stderr, "JSON Error in config file on line %d: %s\n",
-                    json_error.line, json_error.text);
+            error("JSON Error in config file on line %d: %s\n", 0,
+                  json_error.line, json_error.text);
             failed = true;
         }
     }

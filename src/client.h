@@ -8,7 +8,7 @@
 
 #include "types.h"
 
-#include "../lib/types/list.h"
+#include <types/list.h>
 
 struct Client {
     IPAddress address;
@@ -16,6 +16,8 @@ struct Client {
     FILE* file; // We're using a FILE* here so we can just send ncurses
                 // window data down the socket with ease.
     SCREEN* screen;
+    // Whether the user has specified their terminal type
+    bool terminal_given;
 };
 
 typedef struct Client Client;
@@ -57,6 +59,8 @@ void ClientList_Disconnect(ClientList* list, Client client);
  * Get the index of `client` in `list`.
  */
 ssize_t ClientList_GetIndex(ClientList* list, Client client);
+
+Client Client_New(Socket socket, IPAddress address);
 
 /*
  * Sends a formatted message to `client` and flushes the stream.

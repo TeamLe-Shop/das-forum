@@ -16,7 +16,11 @@ void error(char* message, int error, ...)
 
     char string[1024];
 
-    snprintf(string, 1024, "%s: %s\n", message, strerror(errno));
+    if (errno) {
+        snprintf(string, 1024, "%s: %s\n", message, strerror(errno));
+    } else {
+        snprintf(string, 1024, "%s", message);
+    }
 
     vfprintf(stderr, string, argument_list);
 

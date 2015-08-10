@@ -75,6 +75,11 @@ ssize_t ClientList_GetIndex(ClientList* list, Client client)
     return -1;
 }
 
+Client Client_New(Socket socket, IPAddress address) {
+    Client c = {address, socket, fdopen(socket, "r+"), NULL, false};
+    return c;
+}
+
 void Client_Send(Client client, char* format, ...)
 {
     va_list argument_list;
